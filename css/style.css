@@ -1,0 +1,79 @@
+body {
+    background: rgb(18, 18, 18);
+}
+
+h1 {
+    color: #FFFFFF;
+}
+
+h2 {
+    color: #FFFFFF;
+    text-align: center;
+}
+
+#giphys .giphy a {
+    color: #FFFFFF;
+    text-decoration: none;
+    position: relative;
+}
+
+#giphys .giphy p {
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+#giphys .giphy .details {
+    float: left;
+}
+
+#giphys .giphy .star {
+    float: right;
+}
+
+#giphys > .giphy {
+    padding: 5px;
+}
+
+.btn .spinner-border {
+    width: 1rem;
+    height: 1rem;
+    margin-left: 5px;
+    display: none;
+}
+
+.btn:disabled .spinner-border {
+    display: inline-block;
+}
+
+.toast {
+    background-color: #FFFFFF;
+    z-index: 999;
+    position: relative;
+}
+
+.toast .toast-header {
+    background-color: #FFFFFF;
+}
+
+.btn {
+    margin-bottom: 5px;
+}
+
+.btn-primary {
+    background-color: #6157ff;
+    border-color: #6157ff;
+}
+
+.btn-primary:hover, .btn-primary:disabled {
+    background-color: #4f47d5;
+    border-color: #4f47d5;
+}
+
+#fetch-giphys {
+    width: 150px;
+}
+
+#fetch-giphys:active {
+    outline: 0;
+}
