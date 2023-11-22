@@ -7,10 +7,10 @@ Since this started out as a personal project, it's not some kind of state-of-the
 
 The Stack is as follows:
 
-- HTML (Duhhh)
 - CSS (Bootstrap)
 - JavaScript (jQuery) 
 - PHP
+- HTML
 
 ## Contents
 
