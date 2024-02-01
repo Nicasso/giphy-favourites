@@ -15,7 +15,7 @@
 <body>
 
 <div class="toast-container position-absolute top-0 end-0 p-3">
-    <div class="toast " role="alert" aria-live="assertive" aria-atomic="true" data-autohide="true">
+    <div class="toast hide " role="alert" aria-live="assertive" aria-atomic="true" data-autohide="true">
         <div class="toast-header">
             <strong class="me-auto toast-title"></strong>
             <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
@@ -27,17 +27,29 @@
 </div>
 
 <div class="container">
-    <h1>Giphy favourites</h1>
-
-    <button class="btn btn-primary" id="fetch-giphys">
-        Fetch Giphys
-        <div class="spinner-border" role="status">
-            <span class="sr-only"></span>
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Giphy favourites</h1>
         </div>
-    </button>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 menu">
+            <button class="btn btn-primary" id="fetch-giphys">
+                Fetch Giphys
+                <div class="spinner-border" role="status">
+                    <span class="sr-only"></span>
+                </div>
+            </button>
+        </div>
+
+        <div class="col-md-6 search">
+            <input type="text" placeholder="Search..." id="search-bar" autofocus/>
+            <button class="btn btn-info" id="clear-search-bar">Clear</button>
+        </div>
+    </div>
 </div>
 <div class="container">
-    <h2>Favourites</h2>
     <div id="giphys" class="row giphy-grid">
 
     </div>

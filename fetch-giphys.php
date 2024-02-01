@@ -111,9 +111,14 @@ function fetch_streams($page = 0, $second_attempt = false) {
 
     $response = [];
     foreach ($json['data'] as $giphy) {
+      $tags = implode(",", $giphy['tags']);
+
       $response[$giphy['index_id']] = [
         'url_preview' => $giphy['images']['fixed_height_still']['url'],
         'url' => $giphy['images']['fixed_height']['url'],
+        'tags' => $tags,
+        'title' => $giphy['title'],
+        'create_datetime' => $giphy['create_datetime'],
       ];
     }
 

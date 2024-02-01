@@ -1,7 +1,7 @@
 # Giphy Favourites [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE.md)
 
 I am always sending a lot of Giphys throughout the day to communication with my colleagues and friends. So over there years I've created a proper list of Giphy favourites that currently contains about 400+ Giphys.
-Quickly and efficiently navigating through my favourites was a bit of a pain due to the lazy loading Giphy uses, therefore I decided to create this little tool to help me out and communicate my favourite Giphys in a more efficient manner.
+Quickly and efficiently navigating through my favourites was a bit of a pain due to the lazy loading Giphy uses, therefore I decided to create this little tool to help me out and communicate my favourite Giphys in a more efficient manner. 
 
 Since this started out as a personal project, it's not some kind of state-of-the-art tool. I kept it simple. 
 
@@ -48,12 +48,6 @@ There are no visual effects or animations showing you that it has copied the url
 The `Fetch Giphys` button will fetch the latest Giphys from your favourites and cache them to your browser (local storage).
 This is done to prevent the Giphy API from being called too frequently. 
 It will allow you to fetch all your new Giphys every 10 minutes if you've maybe added a new one to your favourites.
-
-##### [Back to Contents](#contents)
-
-## To-do
-
-I'm thinking about adding a search function, but I'm not sure yet.
 
 ##### [Back to Contents](#contents)
 
