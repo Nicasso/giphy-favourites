@@ -139,6 +139,7 @@ $(document).ready(function() {
             $(this).show();
         });
 
+        let url = window.location.href.split('?')[0];
         window.history.pushState({}, document.title, url);
     }));
 
