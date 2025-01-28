@@ -138,6 +138,8 @@ $(document).ready(function() {
         $('.giphy').each(function () {
             $(this).show();
         });
+
+        window.history.pushState({}, document.title, url);
     }));
 
     let urlParams = new URLSearchParams(window.location.search);
