@@ -81,9 +81,7 @@ $(document).ready(function() {
         return false;
     }));
 
-    $('#search-bar').on('keyup', (function (e) {
-        let searchQuery = this.value;
-
+    function filterResults(searchQuery) {
         let streamsNoResults = false;
         let streamsCount = $('#giphys .giphy').length;
         let streamsHidden = 0;
@@ -113,6 +111,25 @@ $(document).ready(function() {
             }
 
         });
+    }
+
+    $('#search-bar').on('keyup', (function (e) {
+        let searchQuery = this.value;
+
+        if (searchQuery.length > 0) {
+            filterResults(searchQuery);
+        } else {
+            $('.giphy').each(function () {
+                $(this).show();
+            });
+        }
+
+        let url = window.location.href.split('?')[0];
+        if (searchQuery.length === 0) {
+            window.history.pushState({}, document.title, url);
+        } else {
+            window.history.pushState({}, document.title, url + '?s=' + searchQuery);
+        }
     }));
 
     $("body").on('click', '#clear-search-bar', (function (e) {
@@ -122,4 +139,12 @@ $(document).ready(function() {
             $(this).show();
         });
     }));
+
+    let urlParams = new URLSearchParams(window.location.search);
+    let searchQuery = urlParams.get('s');
+    if (searchQuery) {
+        $('#search-bar').val(searchQuery);
+        filterResults(searchQuery);
+    }
+
 });
