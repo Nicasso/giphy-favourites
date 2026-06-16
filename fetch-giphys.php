@@ -116,6 +116,8 @@ function fetch_streams($page = 0, $second_attempt = false) {
       $response[$giphy['index_id']] = [
         'url_preview' => $giphy['images']['fixed_height_still']['url'],
         'url' => $giphy['images']['fixed_height']['url'],
+        'width' => $giphy['images']['fixed_height']['width'],
+        'height' => $giphy['images']['fixed_height']['height'],
         'tags' => $tags,
         'title' => $giphy['title'],
         'create_datetime' => $giphy['create_datetime'],

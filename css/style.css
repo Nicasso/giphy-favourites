@@ -14,7 +14,61 @@ h2 {
 #giphys .giphy a {
     color: #FFFFFF;
     text-decoration: none;
+    display: block;
     position: relative;
+    overflow: hidden;
+    border-radius: 0.25rem;
+    background: #1f1f1f;
+}
+
+/* Shimmer skeleton while the GIF loads */
+#giphys .giphy a::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+    transform: translateX(-100%);
+    animation: shimmer 1.5s infinite;
+}
+
+#giphys .giphy a.loaded {
+    background: transparent;
+}
+
+#giphys .giphy a.loaded::after {
+    content: none;
+}
+
+@keyframes shimmer {
+    100% { transform: translateX(100%); }
+}
+
+#giphys .giphy img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+
+#giphys .giphy img.loaded {
+    opacity: 1;
+}
+
+/* Fallback for cached items without known dimensions: flow naturally */
+#giphys .giphy a.flow {
+    background: transparent;
+}
+
+#giphys .giphy a.flow::after {
+    content: none;
+}
+
+#giphys .giphy a.flow img {
+    position: static;
+    height: auto;
 }
 
 #giphys .giphy p {
@@ -31,8 +85,41 @@ h2 {
     float: right;
 }
 
+#giphys.giphy-grid {
+    display: block;
+}
+
+#giphys .grid-sizer,
+#giphys > .giphy {
+    width: 25%;
+    float: none;
+    max-width: none;
+}
+
 #giphys > .giphy {
     padding: 5px;
+}
+
+#giphys > .giphy.selected a {
+    box-shadow: 0 0 0 3px #6157ff;
+}
+
+/* Large */
+@media (max-width: 1200px) {
+    #giphys .grid-sizer,
+    #giphys > .giphy { width: 33.3333%; }
+}
+
+/* Medium */
+@media (max-width: 992px) {
+    #giphys .grid-sizer,
+    #giphys > .giphy { width: 50%; }
+}
+
+/* Small */
+@media (max-width: 576px) {
+    #giphys .grid-sizer,
+    #giphys > .giphy { width: 100%; }
 }
 
 /* Medium */
