@@ -53,6 +53,24 @@ function login() {
   return $data->data->access_token;
 }
 
+/**
+ * The unscaled source GIF for the clipboard.
+ *
+ * `fixed_height` (what the grid shows) is Giphy's 200px-tall render — fine for
+ * the overview, but it's a resize, so copying it hands out a downscaled GIF.
+ * `original` is the file as uploaded. Note it is occasionally SMALLER than
+ * fixed_height in pixels, because Giphy upscales short GIFs to reach 200px —
+ * "original" still means unscaled, which is what we want.
+ *
+ * Giphy's tracking params (cid/ep/rid/ct) are stripped: the bare media URL
+ * serves the same image and makes a far nicer link to paste. Falls back to the
+ * displayed URL if `original` is ever missing.
+ */
+function original_url(array $images) {
+  $url = $images['original']['url'] ?? $images['fixed_height']['url'] ?? '';
+  return explode('?', $url, 2)[0];
+}
+
 function fetch_streams($page = 0, $second_attempt = false) {
     if (isset($_SESSION['access_token']) && isset($_SESSION['user_id'])) {
       $access_token = $_SESSION['access_token'];
@@ -116,6 +134,7 @@ function fetch_streams($page = 0, $second_attempt = false) {
       $response[$giphy['index_id']] = [
         'url_preview' => $giphy['images']['fixed_height_still']['url'],
         'url' => $giphy['images']['fixed_height']['url'],
+        'url_original' => original_url($giphy['images']),
         'width' => $giphy['images']['fixed_height']['width'],
         'height' => $giphy['images']['fixed_height']['height'],
         'tags' => $tags,

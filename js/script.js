@@ -22,25 +22,46 @@ $(document).ready(function() {
     if (!giphys) {
         fetchGiphys();
     } else {
-        displayGiphys(JSON.parse(giphys));
+        let cached = JSON.parse(giphys);
+        displayGiphys(cached);
+        // Anything cached before original URLs existed would still copy the
+        // 200px render. Refresh in the background rather than dropping the
+        // cache: the server allows one fetch per 10 minutes, and clearing it
+        // outright would leave an empty grid whenever that cooldown is active.
+        if (missingOriginals(cached)) {
+            fetchGiphys(true);
+        }
+    }
+
+    function missingOriginals(items) {
+        return Object.values(items).some(function (item) {
+            return !item.url_original;
+        });
     }
 
     function addGiphy(item) {
         let hasRatio = item.width && item.height;
         let style = hasRatio ? " style='aspect-ratio:" + item.width + " / " + item.height + "'" : "";
         let aClass = hasRatio ? "ph" : "ph flow";
+        // What lands on the clipboard (and where the link goes): the unscaled
+        // original. `url` is Giphy's 200px-tall render — right for the grid,
+        // wrong for sharing. Items cached before url_original existed fall back
+        // to it until the background refresh below replaces them.
+        let copySrc = item.url_original || item.url;
 
         $("#giphys").append("<div class='giphy col-xs-4 col-sm-4 col-md-3 col-lg-3 col-xl-3'" +
           "data-title='" + item.title + "' data-tags='" + item.tags + "'" +
           ">" +
-          "<a class='" + aClass + "' target='_blank' href='" + item.url + "/" + item.broad_no + "'" + style + ">" +
+          "<a class='" + aClass + "' target='_blank' href='" + copySrc + "' data-copy-src='" + copySrc + "'" + style + ">" +
           "<img src='" + item.url_preview + "' data-real-src='" + item.url + "' alt='" + item.title + "'/>" +
           "</a>" +
           "</div>");
 
     }
 
-    function fetchGiphys() {
+    // silent: an automatic background refresh, not a button press — don't nag
+    // with a toast if the 10-minute cooldown blocks it or the network fails.
+    function fetchGiphys(silent) {
         $("#fetch-giphys").attr('disabled', 'disabled');
 
         let settings = {
@@ -60,11 +81,15 @@ $(document).ready(function() {
                 $("#fetch-giphys").removeAttr('disabled');
             } else {
                 $("#fetch-giphys").removeAttr('disabled');
-                showToast("Take it easy", "Try again later.")
+                if (!silent) {
+                    showToast("Take it easy", "Try again later.")
+                }
             }
         }, function (jqXHR, textStatus, errorThrown) {
             $("#fetch-giphys").removeAttr('disabled');
-            showToast("Oops", "Failed to fetch the giphys.")
+            if (!silent) {
+                showToast("Oops", "Failed to fetch the giphys.")
+            }
         });
     }
 
@@ -97,7 +122,9 @@ $(document).ready(function() {
     $("#giphys").on('click', 'a', (function(e) {
         let $img = $(this).children('img');
         let real_src = $img.data('real-src');
-        navigator.clipboard.writeText(real_src);
+        // Copy the original; keep PLAYING the 200px version, so the grid stays
+        // light even when the original is several MB.
+        navigator.clipboard.writeText($(this).data('copy-src') || real_src);
 
         if (!$(this).hasClass('animating')) {
             $(this).addClass('animating');
