@@ -5,9 +5,7 @@ services:
     image: php:8.2-fpm-alpine
     volumes:
       - ./html:/var/www/html
-      # Same PHP configuration as production (see php.ini), so dev is not
-      # quietly running a different runtime — plus dev-only overrides that put
-      # errors back on screen. zzz- sorts after zz-, so the overrides win.
+      # Same PHP config as prod, plus a dev override that shows errors on screen.
       - ./php.ini:/usr/local/etc/php/conf.d/zz-app.ini:ro
       - ./php-dev.ini:/usr/local/etc/php/conf.d/zzz-dev.ini:ro
 
