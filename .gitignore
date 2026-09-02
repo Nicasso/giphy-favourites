@@ -3,3 +3,13 @@
 .htaccess
 files/*
 settings.php
+# OS
+**/.DS_Store
+
+# Editors
+.vscode/
+*.swp
+*.swo
+
+# Claude Code — machine-local, the rest of .claude/ is worth sharing
+.claude/settings.local.json
