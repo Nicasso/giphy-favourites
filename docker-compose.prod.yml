@@ -1,0 +1,24 @@
+services:
+  giphy:
+    build: .
+    container_name: giphy
+    restart: unless-stopped
+    # Resource ceiling, not a reservation: the container still only uses what it
+    # needs. This caps what it can take away from the other twelve live services
+    # and from the unrelated client work on the same Mac mini. Before this,
+    # nothing on the box had a limit — scrum-poker measured 34,949 rooms/second
+    # from unauthenticated POSTs and could starve everything else.
+    #
+    # Sized generously on purpose: a ceiling below real use is an OOM kill on the
+    # next deploy. Check what a service actually uses with `docker stats` and
+    # tighten from there.
+    mem_limit: 256m
+    pids_limit: 128
+    expose:
+      - "80"
+    networks:
+      - caddy-net
+
+networks:
+  caddy-net:
+    external: true
