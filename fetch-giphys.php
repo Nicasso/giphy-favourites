@@ -38,7 +38,6 @@ function login() {
   curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
 
   $response = curl_exec($curl);
-  curl_close($curl);
 
   if ($response === false) {
     http_response_code(400);
@@ -122,8 +121,6 @@ function fetch_streams($page = 0, $second_attempt = false) {
       unset($_SESSION['access_token']);
       fetch_streams($page, true);
     }
-
-    curl_close($curl);
 
     $json = json_decode($response, TRUE);
 
