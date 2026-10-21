@@ -2,7 +2,7 @@ services:
 
   php:
     container_name: "giphy-php"
-    image: php:8.2-fpm-alpine
+    image: php:8.5-fpm-alpine
     volumes:
       - ./html:/var/www/html
       # Same PHP config as prod, plus a dev override that shows errors on screen.
