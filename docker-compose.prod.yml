@@ -9,8 +9,10 @@ services:
     expose:
       - "80"
     networks:
-      - caddy-net
+      - edge
 
 networks:
-  caddy-net:
+  # Shared with Caddy only, so apps cannot reach each other. Caddy owns it.
+  edge:
     external: true
+    name: edge-giphy

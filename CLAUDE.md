@@ -34,7 +34,7 @@ Copy `html/default.settings.php` to `html/settings.php` and fill in your Giphy e
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-Single-container build (PHP-FPM + Nginx in one Alpine image). Exposes port 80 internally only — Caddy on the host handles external traffic and reverse proxies into the `caddy-net` Docker network.
+Single-container build (PHP-FPM + Nginx in one Alpine image). Exposes port 80 internally only — Caddy on the host handles external traffic and reverse proxies into the `edge-giphy` Docker network.
 
 ## Key Behaviors
 
