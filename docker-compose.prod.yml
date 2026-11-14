@@ -6,10 +6,17 @@ services:
     # Ceiling, not a reservation. Sized generously: too low = OOM kill on deploy.
     mem_limit: 256m
     pids_limit: 128
+    volumes:
+      # Local copies of every favourite. Re-downloadable, but a shared link
+      # points here, so never prune it.
+      - gifs:/var/www/gifs
     expose:
       - "80"
     networks:
       - edge
+
+volumes:
+  gifs:
 
 networks:
   # Shared with Caddy only, so apps cannot reach each other. Caddy owns it.
