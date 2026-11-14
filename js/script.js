@@ -24,18 +24,23 @@ $(document).ready(function() {
     } else {
         let cached = JSON.parse(giphys);
         displayGiphys(cached);
-        // Anything cached before the local copies existed still points at
-        // Giphy. Refresh in the background rather than dropping the cache: the
+        // A cache from before the local copies or the lighter play rendition.
+        // Refresh in the background rather than dropping the cache: the
         // server allows one fetch per 10 minutes, and clearing it outright
         // would leave an empty grid whenever that cooldown is active.
-        if (notLocal(cached)) {
+        if (outdated(cached)) {
             fetchGiphys(true);
         }
     }
 
-    function notLocal(items) {
-        return Object.values(items).some(function (item) {
+    // No item has a /gifs/play/ url: the cache predates the play rendition
+    // (small GIFs keep playing the original, so "some" would never settle).
+    function outdated(items) {
+        let list = Object.values(items);
+        return list.some(function (item) {
             return !(item.url_original || '').startsWith('/gifs/');
+        }) || !list.some(function (item) {
+            return (item.url || '').startsWith('/gifs/play/');
         });
     }
 

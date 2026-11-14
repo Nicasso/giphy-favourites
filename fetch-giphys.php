@@ -116,9 +116,11 @@ function sync_gifs(array $sources) {
   }
   set_time_limit(0);
   ignore_user_abort(true);
-  if (!is_dir(GIF_DIR . '/still') && !mkdir(GIF_DIR . '/still', 0755, true)) {
-    error_log('giphy: cannot create ' . GIF_DIR . '/still');
-    return;
+  foreach (['still', 'play'] as $sub) {
+    if (!is_dir(GIF_DIR . "/$sub") && !mkdir(GIF_DIR . "/$sub", 0755, true)) {
+      error_log('giphy: cannot create ' . GIF_DIR . "/$sub");
+      return;
+    }
   }
 
   foreach ($sources as $path => $url) {
@@ -198,9 +200,20 @@ function fetch_streams($page = 0, $second_attempt = false) {
       $gif_sources["/$id.gif"] = $original;
       $gif_sources["/still/$id.gif"] = $still;
 
+      // Playback in the grid uses downsized_medium (max 5 MB) so a click starts
+      // fast; the copied link stays the original. Only when it is really smaller.
+      $play = "/gifs/$id.gif";
+      $medium = giphy_media_url($images['downsized_medium']['url'] ?? '');
+      $medium_size = (int) ($images['downsized_medium']['size'] ?? 0);
+      $original_size = (int) ($images['original']['size'] ?? 0);
+      if ($medium !== null && $medium_size > 0 && $medium_size < $original_size) {
+        $gif_sources["/play/$id.gif"] = $medium;
+        $play = "/gifs/play/$id.gif";
+      }
+
       $response[$giphy['index_id']] = [
         'url_preview' => "/gifs/still/$id.gif",
-        'url' => "/gifs/$id.gif",
+        'url' => $play,
         'url_original' => "/gifs/$id.gif",
         'width' => $images['original']['width'],
         'height' => $images['original']['height'],
