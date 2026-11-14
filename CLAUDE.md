@@ -55,4 +55,7 @@ Single-container build (PHP-FPM + Nginx in one Alpine image). Exposes port 80 in
 - Anything in localStorage that does not point at `/gifs/` makes the page do one
   silent background refresh (never drop the cache to force this — the 10-minute
   cooldown would leave an empty grid)
+- `health.php` is public (the SSO leaves it open): `{ok}` 200/503 on real
+  credentials in `settings.php` and a writable gifs volume. No CI, so check it by
+  hand after a deploy.
 - `settings.php` contains secrets and must never be committed — use `default.settings.php` as the template
