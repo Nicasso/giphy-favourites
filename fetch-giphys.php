@@ -52,22 +52,82 @@ function login() {
   return $data->data->access_token;
 }
 
-/**
- * The unscaled source GIF for the clipboard.
- *
- * `fixed_height` (what the grid shows) is Giphy's 200px-tall render — fine for
- * the overview, but it's a resize, so copying it hands out a downscaled GIF.
- * `original` is the file as uploaded. Note it is occasionally SMALLER than
- * fixed_height in pixels, because Giphy upscales short GIFs to reach 200px —
- * "original" still means unscaled, which is what we want.
- *
- * Giphy's tracking params (cid/ep/rid/ct) are stripped: the bare media URL
- * serves the same image and makes a far nicer link to paste. Falls back to the
- * displayed URL if `original` is ever missing.
- */
-function original_url(array $images) {
-  $url = $images['original']['url'] ?? $images['fixed_height']['url'] ?? '';
-  return explode('?', $url, 2)[0];
+// Local copies live outside the docroot, in a volume nginx serves at /gifs/.
+// A file that is not there yet is a 302 to Giphy (nginx.conf), so these paths
+// are valid from the first fetch on, and a link once shared keeps working.
+const GIF_DIR = '/var/www/gifs';
+const GIF_MAX_BYTES = 100 * 1024 * 1024;
+
+// Giphy ids are alphanumeric. Anything else never becomes a path on disk.
+function gif_id(array $giphy) {
+  $id = $giphy['id'] ?? '';
+  return preg_match('/^[A-Za-z0-9]{1,64}$/', $id) ? $id : null;
+}
+
+// Tracking params (cid/ep/rid/ct) stripped; only Giphy's own media hosts.
+function giphy_media_url($url) {
+  $url = explode('?', (string) $url, 2)[0];
+  $host = parse_url($url, PHP_URL_HOST) ?? '';
+  $ok = parse_url($url, PHP_URL_SCHEME) === 'https' && preg_match('/(^|\.)giphy\.com$/', $host);
+  return $ok ? $url : null;
+}
+
+function download_gif($url, $dest) {
+  $tmp = $dest . '.part';
+  $fh = fopen($tmp, 'wb');
+  if ($fh === false) {
+    error_log("giphy: cannot write $tmp");
+    return false;
+  }
+
+  $curl = curl_init($url);
+  curl_setopt_array($curl, [
+    CURLOPT_FILE => $fh,
+    CURLOPT_FOLLOWLOCATION => true,
+    CURLOPT_MAXREDIRS => 3,
+    CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
+    CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
+    CURLOPT_CONNECTTIMEOUT => 10,
+    CURLOPT_TIMEOUT => 120,
+    CURLOPT_NOPROGRESS => false,
+    CURLOPT_XFERINFOFUNCTION => fn($c, $total, $done) => (int) ($total > GIF_MAX_BYTES || $done > GIF_MAX_BYTES),
+  ]);
+  $ok = curl_exec($curl);
+  $status = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+  $type = (string) curl_getinfo($curl, CURLINFO_CONTENT_TYPE);
+  $error = curl_error($curl);
+  fclose($fh);
+
+  if ($ok === false || $status !== 200 || !str_starts_with($type, 'image/')) {
+    error_log("giphy: download failed ($status $type $error): $url");
+    unlink($tmp);
+    return false;
+  }
+  // Atomic: nginx never serves a half-written file.
+  return rename($tmp, $dest);
+}
+
+// Runs after the response is sent. One sync at a time; a second request while
+// one runs just returns, the next fetch picks up whatever is still missing.
+function sync_gifs(array $sources) {
+  $lock = fopen(GIF_DIR . '/.sync.lock', 'c');
+  if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
+    return;
+  }
+  set_time_limit(0);
+  ignore_user_abort(true);
+  if (!is_dir(GIF_DIR . '/still') && !mkdir(GIF_DIR . '/still', 0755, true)) {
+    error_log('giphy: cannot create ' . GIF_DIR . '/still');
+    return;
+  }
+
+  foreach ($sources as $path => $url) {
+    $dest = GIF_DIR . $path;
+    if (!is_file($dest)) {
+      download_gif($url, $dest);
+    }
+  }
+  flock($lock, LOCK_UN);
 }
 
 function fetch_streams($page = 0, $second_attempt = false) {
@@ -124,17 +184,27 @@ function fetch_streams($page = 0, $second_attempt = false) {
 
     $json = json_decode($response, TRUE);
 
+    global $gif_sources;
     $response = [];
     foreach ($json['data'] as $giphy) {
-      $tags = implode(",", $giphy['tags']);
+      $id = gif_id($giphy);
+      $images = $giphy['images'];
+      $original = giphy_media_url($images['original']['url'] ?? '');
+      $still = giphy_media_url($images['original_still']['url'] ?? '');
+      if ($id === null || $original === null || $still === null) {
+        error_log('giphy: skipped favourite without usable id or original: ' . ($giphy['id'] ?? '?'));
+        continue;
+      }
+      $gif_sources["/$id.gif"] = $original;
+      $gif_sources["/still/$id.gif"] = $still;
 
       $response[$giphy['index_id']] = [
-        'url_preview' => $giphy['images']['fixed_height_still']['url'],
-        'url' => $giphy['images']['fixed_height']['url'],
-        'url_original' => original_url($giphy['images']),
-        'width' => $giphy['images']['fixed_height']['width'],
-        'height' => $giphy['images']['fixed_height']['height'],
-        'tags' => $tags,
+        'url_preview' => "/gifs/still/$id.gif",
+        'url' => "/gifs/$id.gif",
+        'url_original' => "/gifs/$id.gif",
+        'width' => $images['original']['width'],
+        'height' => $images['original']['height'],
+        'tags' => implode(",", $giphy['tags']),
         'title' => $giphy['title'],
         'create_datetime' => $giphy['create_datetime'],
       ];
@@ -157,6 +227,7 @@ if (isset($_SESSION['last_response'])) {
   }
 }
 
+$gif_sources = [];
 $all_giphys = [];
 if (isset($_SESSION['total_giphy_count'])) {
   $total_giphy_count = $_SESSION['total_giphy_count'];
@@ -174,3 +245,7 @@ for ($i = $start; $i < $total_requests_needed; $i++) {
 }
 
 echo json_encode(['data' => $all_giphys]);
+
+session_write_close();
+fastcgi_finish_request();
+sync_gifs($gif_sources);

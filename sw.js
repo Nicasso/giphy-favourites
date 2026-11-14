@@ -7,10 +7,11 @@
 //   • HTML navigations: network-first (so a deploy's fresh markup + the mtime
 //     ?v= asset URLs it points at are delivered), cached '/' as offline fallback.
 //   • /fetch-giphys.php: network-only — it's a dynamic action, never cached.
-//   • Cross-origin (api.giphy.com / media.giphy.com / any CDN): passed through.
+//   • /gifs/ (the local GIF copies) and cross-origin: passed through, so the
+//     library never lands in the cache; the HTTP cache holds them (immutable).
 // Bump VERSION whenever this file changes so the new worker installs.
 
-const VERSION = 'giphy-v1';
+const VERSION = 'giphy-v2';
 const SHELL = `shell-${VERSION}`;
 
 const SHELL_ASSETS = [
@@ -44,6 +45,7 @@ self.addEventListener('fetch', (e) => {
 
   // Dynamic fetch action: never cache, always hit the network.
   if (url.pathname === '/fetch-giphys.php') return;
+  if (url.pathname.startsWith('/gifs/')) return;
 
   // HTML navigations: network-first, cache the latest '/' for offline fallback.
   if (request.mode === 'navigate') {
