@@ -47,6 +47,11 @@ Single-container build (PHP-FPM + Nginx in one Alpine image). Exposes port 80 in
   downloads whatever is missing into the `gifs` volume (`/var/www/gifs`). nginx
   serves those as immutable and 302s a not-yet-downloaded one to Giphy, so the
   paths are valid from the first fetch on. No 200px renditions any more.
+- **A click plays a lighter rendition, the clipboard gets the original.** `url` is
+  `/gifs/play/<id>.gif` (Giphy's `downsized_medium`, max 5 MB) when that is
+  smaller than the original, else the original; `url_original` is always
+  `/gifs/<id>.gif`. A localStorage cache without any `/gifs/play/` url triggers
+  the same silent refresh as one that predates the local copies.
 - **`/gifs/*` is public** (Caddyfile: outside `import sso`, exempt from `geo_nl`
   and the link-preview block) so a copied link unfurls in Slack. Everything else
   stays behind the SSO. The volume is never pruned: unfavouriting a GIF must not
