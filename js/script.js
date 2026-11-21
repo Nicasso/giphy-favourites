@@ -67,15 +67,26 @@ $(document).ready(function() {
     function fetchGiphys(silent) {
         $("#fetch-giphys").attr('disabled', 'disabled');
 
-        let settings = {
-            "url": "fetch-giphys.php",
-            "method": "POST",
-            "dataType": "json",
-            "contentType": "application/json; charset=utf-8",
-            "timeout": 0,
-        };
-
-        $.ajax(settings).then(function (response) {
+        // fetch, not $.ajax: without a session the SSO answers a 302 to the login,
+        // which jQuery follows into a CORS failure; redirect: 'manual' exposes it.
+        fetch("fetch-giphys.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json; charset=utf-8" },
+            credentials: "same-origin",
+            redirect: "manual"
+        }).then(function (res) {
+            if (sessionGone(res)) {
+                reloadForLogin();
+                return null;
+            }
+            if (!res.ok) {
+                throw new Error("HTTP " + res.status);
+            }
+            return res.json();
+        }).then(function (response) {
+            if (response === null) {
+                return;
+            }
             if (response.data.length > 0) {
                 $(".giphy-grid .giphy, .giphy-grid .no-results").remove();
                 grid.masonry("reloadItems");
@@ -88,12 +99,30 @@ $(document).ready(function() {
                     showToast("Take it easy", "Try again later.")
                 }
             }
-        }, function (jqXHR, textStatus, errorThrown) {
+        }).catch(function () {
             $("#fetch-giphys").removeAttr('disabled');
             if (!silent) {
                 showToast("Oops", "Failed to fetch the giphys.")
             }
         });
+    }
+
+    function sessionGone(res) {
+        return res.status === 401 || res.type === "opaqueredirect" || (res.status >= 300 && res.status < 400);
+    }
+
+    // Reload so the browser follows the SSO redirect; the guard stops a loop if
+    // the app itself keeps refusing.
+    function reloadForLogin() {
+        let last = 0;
+        try { last = Number(sessionStorage.getItem("sso-reload")) || 0; } catch (e) { /* storage off */ }
+        if (Date.now() - last < 30000) {
+            $("#fetch-giphys").removeAttr('disabled');
+            showToast("Not logged in", "A reload did not help. Try again later.");
+            return;
+        }
+        try { sessionStorage.setItem("sso-reload", String(Date.now())); } catch (e) { /* storage off */ }
+        location.reload();
     }
 
     function displayGiphys(data) {

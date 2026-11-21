@@ -11,7 +11,7 @@
 //     library never lands in the cache; the HTTP cache holds them (immutable).
 // Bump VERSION whenever this file changes so the new worker installs.
 
-const VERSION = 'giphy-v2';
+const VERSION = 'giphy-v3';
 const SHELL = `shell-${VERSION}`;
 
 const SHELL_ASSETS = [
@@ -22,11 +22,22 @@ const SHELL_ASSETS = [
   '/vendor/bootstrap.bundle.min.js',
   '/vendor/masonry.pkgd.min.js',
   '/vendor/imagesloaded.pkgd.min.js',
-  '/site.webmanifest',
+  '/manifest.webmanifest',
+  '/icons/android-chrome-192x192.png',
+  '/icons/android-chrome-512x512.png',
+  '/icons/apple-touch-icon.png',
 ];
 
+// Only a plain same-origin 200 is cached: a login redirect or a 401 cached as
+// the shell would leave the app stuck on it offline.
+const cacheable = (res) => res.ok && !res.redirected && res.type === 'basic';
+
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(SHELL).then((c) => c.addAll(SHELL_ASSETS)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(SHELL).then((c) => Promise.all(SHELL_ASSETS.map(async (path) => {
+    const res = await fetch(path, { cache: 'reload' });
+    if (!cacheable(res)) throw new Error('not cacheable: ' + path);
+    await c.put(path, res);
+  }))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -51,7 +62,13 @@ self.addEventListener('fetch', (e) => {
   if (request.mode === 'navigate') {
     e.respondWith(
       fetch(request)
-        .then((res) => { const copy = res.clone(); caches.open(SHELL).then((c) => c.put('/', copy)); return res; })
+        .then((res) => {
+          if (cacheable(res) && url.pathname === '/') {
+            const copy = res.clone();
+            caches.open(SHELL).then((c) => c.put('/', copy));
+          }
+          return res;
+        })
         .catch(() => caches.match(request).then((r) => r || caches.match('/')))
     );
     return;
@@ -61,7 +78,7 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     caches.open(SHELL).then(async (cache) => {
       const hit = await cache.match(request);
-      const fetched = fetch(request).then((res) => { if (res.ok) cache.put(request, res.clone()); return res; }).catch(() => hit);
+      const fetched = fetch(request).then((res) => { if (cacheable(res)) cache.put(request, res.clone()); return res; }).catch(() => hit);
       return hit || fetched;
     })
   );

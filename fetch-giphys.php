@@ -1,6 +1,10 @@
 <?php
 
-require_once 'settings.php';
+// Before anything else: past this point the request logs into Giphy.
+require_once __DIR__ . '/lib/auth.php';
+require_sso();
+
+require_once __DIR__ . '/settings.php';
 
 session_start();
 
