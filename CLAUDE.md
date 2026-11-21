@@ -63,4 +63,11 @@ Single-container build (PHP-FPM + Nginx in one Alpine image). Exposes port 80 in
 - `health.php` is public (the SSO leaves it open): `{ok}` 200/503 on real
   credentials in `settings.php` and a writable gifs volume. No CI, so check it by
   hand after a deploy.
+- **The app checks the SSO too.** `index.php` and `fetch-giphys.php` call
+  `require_sso()` (`html/lib/auth.php`): 401 unless `Remote-User` equals
+  `SSO_USER` (default `nico`, empty = nobody). `php tests/sso_check.php` (here in
+  the wrapper, outside the image) checks it. The front end reloads into the login
+  on a 401 or redirect.
+- Manifest and icons sit on paths the SSO leaves open: `/manifest.webmanifest`,
+  `/icons/*`. Do not move them back under `/assets/`.
 - `settings.php` contains secrets and must never be committed — use `default.settings.php` as the template

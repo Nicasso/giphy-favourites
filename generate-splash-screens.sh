@@ -17,7 +17,7 @@ set -euo pipefail
 BG="#121212"
 FG="#ffffff"
 TITLE="Giphy"
-ICON="html/assets/android-chrome-512x512.png"
+ICON="html/icons/android-chrome-512x512.png"
 # Ground behind a glyph icon that has no background of its own; `transparent`
 # for an icon that is already a full tile.
 TILE="transparent"
