@@ -20,7 +20,7 @@ Copy `html/default.settings.php` to `html/settings.php` and fill in your Giphy e
 
 ## Architecture
 
-- **Docker stack**: PHP 8.2 FPM Alpine + Nginx Alpine + Traefik v3 reverse proxy (all official images)
+- **Docker stack**: PHP 8.5 FPM Alpine + Nginx Alpine + Traefik v3 reverse proxy (all official images)
 - **Backend** (`html/fetch-giphys.php`): Authenticates with Giphy API using iOS SDK headers, fetches all user favourites paginated at 100/request, enforces a 10-minute cooldown between fetches via PHP sessions
 - **Frontend** (`html/index.php`, `html/js/script.js`): jQuery + Bootstrap 5 SPA-style page. GIF data is cached in localStorage after first fetch. Client-side search filters by title and tags. URL query param `?s=` syncs with search bar.
 - **Layout**: GIFs render in a Masonry (`masonry-layout`) grid; `imagesLoaded` drives per-image fade-in. Each item reserves space via a CSS `aspect-ratio` derived from the original's width/height, so there's no layout shift — a shimmer skeleton shows until the image loads. Items cached before width/height existed fall back to natural flow (`.flow` class).
@@ -30,9 +30,12 @@ Copy `html/default.settings.php` to `html/settings.php` and fill in your Giphy e
 
 ## Production
 
-```bash
-docker compose -f docker-compose.prod.yml up -d --build
-```
+Repo `Nicasso-org/giphy-favourites` (the app and its Docker wrapper, merged 2026-11-21).
+A push to `master` tests in the shipped image and deploys on the mini through the org
+runner into `/home/nico/Sites/giphy` (fixed path: the repo name differs). The deploy
+gate checks health and the SSO gate. `html/settings.php` lives only on the mini and is
+mounted read-only. Never `docker compose down -v`: the `gifs` volume holds the copies
+that shared links point at.
 
 Single-container build (PHP-FPM + Nginx in one Alpine image). Exposes port 80 internally only — Caddy on the host handles external traffic and reverse proxies into the `edge-giphy` Docker network.
 
@@ -61,12 +64,11 @@ Single-container build (PHP-FPM + Nginx in one Alpine image). Exposes port 80 in
   silent background refresh (never drop the cache to force this — the 10-minute
   cooldown would leave an empty grid)
 - `health.php` is public (the SSO leaves it open): `{ok}` 200/503 on real
-  credentials in `settings.php` and a writable gifs volume. No CI, so check it by
-  hand after a deploy.
+  credentials in `settings.php` and a writable gifs volume; the deploy gate checks it.
 - **The app checks the SSO too.** `index.php` and `fetch-giphys.php` call
   `require_sso()` (`html/lib/auth.php`): 401 unless `Remote-User` equals
-  `SSO_USER` (default `nico`, empty = nobody). `php tests/sso_check.php` (here in
-  the wrapper, outside the image) checks it. The front end reloads into the login
+  `SSO_USER` (default `nico`, empty = nobody). `tests/sso_check.php` (outside the
+  image) checks it; CI runs it inside the shipped image. The front end reloads into the login
   on a 401 or redirect.
 - Manifest and icons sit on paths the SSO leaves open: `/manifest.webmanifest`,
   `/icons/*`. Do not move them back under `/assets/`.

@@ -10,6 +10,8 @@ services:
       # Local copies of every favourite. Re-downloadable, but a shared link
       # points here, so never prune it.
       - gifs:/var/www/gifs
+      # Mounted, not baked: the Giphy credentials stay out of image layers (SCS §8.2).
+      - ./html/settings.php:/var/www/html/settings.php:ro
     expose:
       - "80"
     networks:

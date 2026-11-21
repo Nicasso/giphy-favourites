@@ -1,15 +1,12 @@
-# The application itself is its own repository (Nicasso/giphy-favourites).
-# This repository versions only the wrapper around it: the Dockerfile, the
-# nginx configs, the compose files and php.ini — the production configuration
-# that until now existed nowhere but this laptop.
-html/
+# Mini-only: the Giphy credentials.
+html/settings.php
+html/files/
 
-.DS_Store
-.idea/
 # OS
 **/.DS_Store
 
 # Editors
+.idea/
 .vscode/
 *.swp
 *.swo

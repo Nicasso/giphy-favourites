@@ -1,0 +1,94 @@
+name: deploy
+
+# Test on every push/PR. On push to master, deploy LOCALLY on the Mac mini via
+# the shared org self-hosted runner — no SSH, the runner already lives on the box.
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Fixed, not derived from the repo name: the repo is giphy-favourites, the
+  # project, container and Caddy upstream are giphy.
+  DEPLOY_PATH: /home/nico/Sites/giphy
+  SERVICE: giphy
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the production image
+        run: docker build -t giphy:ci .
+
+      # tests/ is dockerignored, so it is mounted. No network: the check must never
+      # reach Giphy (it also disables curl in its child processes).
+      - name: SSO gate check inside the shipped image
+        run: |
+          docker run --rm --network none --user www-data \
+            -v "$PWD/tests:/var/www/tests:ro" \
+            --entrypoint php giphy:ci /var/www/tests/sso_check.php
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync code into place
+        # --delete keeps the tree clean; the settings.php exclude is CRITICAL (the
+        # Giphy credentials exist only on the mini). The GIFs are in a named volume,
+        # outside this tree.
+        run: |
+          [ -f "$DEPLOY_PATH/html/settings.php" ] || { echo "::error::html/settings.php missing on the mini"; exit 1; }
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.idea' \
+            --exclude='**/.DS_Store' \
+            --exclude='html/settings.php' \
+            --exclude='html/files' \
+            ./ "$DEPLOY_PATH/"
+
+      - name: Build & (re)start the container
+        # Never `down -v`: the gifs volume holds what shared links point at.
+        run: |
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+          docker compose -f docker-compose.prod.yml up -d --build
+          docker image prune -f
+
+      - name: Health gate
+        # health.php: real credentials and a writable gifs volume. Then the SSO gate:
+        # / as the SSO user 200, without it 401.
+        run: |
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+          status() {
+            docker compose -f docker-compose.prod.yml exec -T "$SERVICE" \
+              php -r '$h=@get_headers("http://127.0.0.1".$argv[1], false, stream_context_create(["http"=>["header"=>$argv[2]]])); if($h){preg_match("#\s(\d{3})\s#",$h[0],$m); echo $m[1] ?? "";}' "$1" "$2" 2>/dev/null || true
+          }
+          code=0
+          for i in $(seq 1 30); do
+            code=$(status /health.php 'X-None: 1')
+            [ "$code" = "200" ] && { echo "healthy (HTTP 200)"; break; }
+            echo "waiting for health… ($i) [got '$code']"; sleep 2
+          done
+          [ "$code" = "200" ] || { echo "::error::health.php did not return 200"; exit 1; }
+          code=$(status / 'Remote-User: nico')
+          [ "$code" = "200" ] || { echo "::error::/ as the SSO user answered $code, not 200"; exit 1; }
+          code=$(status / 'X-None: 1')
+          [ "$code" = "401" ] || { echo "::error::/ without Remote-User answered $code, not 401"; exit 1; }
+          echo "SSO gate holds (200 with Remote-User, 401 without)"

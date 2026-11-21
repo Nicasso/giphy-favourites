@@ -1,6 +1,6 @@
 <?php
 // SSO gate check, no dependencies: php tests/sso_check.php (exit 0 = pass).
-// Kept in the wrapper, outside the image and the web root.
+// Outside the image and the web root; CI mounts it into the shipped image.
 // curl is disabled in the child processes so an ungated fetch-giphys.php can
 // never log into Giphy from here.
 
