@@ -34,8 +34,6 @@ function login() {
     ),
   ));
 
-  curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
-  curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
 
   $response = curl_exec($curl);
 
@@ -173,8 +171,6 @@ function fetch_streams($page = 0, $second_attempt = false) {
       ),
     ));
 
-    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
-    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
 
     $response = curl_exec($curl);
 
